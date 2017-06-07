@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# This script takes the place of the google-chrome executable within the /usr/bin folder.
+# The purpose of it is to start Xvfb alongside chrome so that there is a GUI for chrome to display to.
+# By default there is no display attached to this docker image. Xvfb emulates a display within memory.
+
+_term_procs() {
+  kill -TERM $chromium
+  wait $chromium
+  kill -TERM $xvfb
+}
+
+_kill_procs() {
+  kill -KILL $chromium
+  wait $chromium
+  kill -KILL $xvfb
+}
+
+# Setup a trap to catch SIGTERM and SIGKILL and relay it to child processes
+trap _term_procs SIGTERM
+trap _kill_procs SIGKILL
+
+XVFB_WHD=${XVFB_WHD:-1280x720x16}
+
+# Start Xvfb
+Xvfb :99 -ac -screen 0 $XVFB_WHD &
+xvfb=$!
+
+export DISPLAY=:99
+
+chromium --no-sandbox $@ &
+chromium=$!
+
+wait $chromium
+wait $xvfb
